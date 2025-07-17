@@ -12,7 +12,7 @@ import { getpendingMedicine,getpendingVaccine } from '../controllers/pendingCont
 import { getcompletedMedicine,getcompletedVaccine} from '../controllers/completedController.js';
 import { getcancelledMedicine,getcancelledVaccine} from '../controllers/cancelledController.js';
 
-import { acceptMedicine, acceptVaccine, rejectMedicine, rejectVaccine } from '../controllers/BOOKING/acceptrejectController.js';
+import { acceptMedicine, acceptVaccine, rejectMedicine, rejectVaccine,getBookingInfo } from '../controllers/BOOKING/acceptrejectController.js';
 import { completeMedicine, completeVaccine } from '../controllers/BOOKING/completeController.js';
 
 import { getCancelled, getPending, getCompleted } from '../controllers/BOOKING/incomingpendingcompletedController.js';
@@ -45,6 +45,7 @@ router.get('/pendingvaccine/:labId', getvaccinePendingbyID )
 
 
 
+router.post('/get-booking-info', getBookingInfo);
 router.post('/acceptmedicine', acceptMedicine);
 router.post('/acceptvaccine', acceptVaccine);
 router.post('/rejectmedicine', rejectMedicine);

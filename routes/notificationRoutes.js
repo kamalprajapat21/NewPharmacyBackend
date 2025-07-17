@@ -85,6 +85,7 @@ import {
     createVaccinationNotificationToPWA,
     updateBookingStatusAndRemoveNotification,
     createNotificationToPharmacy,
+    deleteNotification,
 } from '../controllers/notificationController.js'; // adjust path if needed
 
 const router = express.Router();
@@ -103,5 +104,7 @@ router.get('/pharmacy/incoming', getIncomingNotificationsForPharmacy);
 
 // PUT to update status and remove notification
 router.put('/update-status', updateBookingStatusAndRemoveNotification);
+
+router.delete('/pharmacy', deleteNotification);
 
 export default router;
