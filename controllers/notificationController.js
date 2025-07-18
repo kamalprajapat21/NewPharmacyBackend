@@ -102,35 +102,62 @@ export const createMedicineNotificationToPWA = async (req, res) => {
 // ================================
 export const createVaccinationNotificationToPWA = async (req, res) => {
   try {
-    const { bookingId, pharmacyId, userId } = req.body;
+    const { bookingId, pharmacyId } = req.body;
     const conn1 = req.conn1;
     const conn2 = req.conn2;
 
+    // Find the booking in the vaccination collection
+    const VaccinationModel = (await import('../models/vaccination.js')).default(conn2);
+    const bookingDoc = await VaccinationModel.findOne({ 'bookings.bookingId': bookingId });
+
+    if (!bookingDoc) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+
+    // Find the specific booking in the bookings array
+    const booking = bookingDoc.bookings.find(b => b.bookingId === bookingId);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found in document' });
+    }
+
+    // Validate pharmacyId
+    if (pharmacyId && booking.pharmacyId && pharmacyId !== String(booking.pharmacyId)) {
+      return res.status(403).json({ success: false, message: 'Pharmacy does not match booking' });
+    }
+
+    const userId = booking.userId;
+    const patientName = booking.patientName;
+
+    // Get pharmacy name if needed
+    let pharmacyName = '';
+    if (booking.pharmacyId) {
+      const PharmacyUser1 = User1Model(conn1);
+      const pharmacy = await PharmacyUser1.findById(booking.pharmacyId);
+      pharmacyName = pharmacy ? pharmacy.fullName : '';
+    }
+
+    const message = `${pharmacyName} accepted your Vaccination booking`;
+
     const Notification = notificationModel(conn2);
-    const io = getIo();
-
-    const serviceType = 'Vaccination';
-
-    const { patientName } = await getBookingAndValidateUser({ conn2, bookingId, serviceType, userId });
-    const pharmacyName = await getPharmacyName(conn1, pharmacyId);
-
-    const message = `${pharmacyName} accepted your ${serviceType} booking`;
-
     const notification = new Notification({
       message,
       for: 'PWA',
       userId,
-      serviceType,
+      serviceType: 'Vaccination',
       bookingId,
-      pharmacyId,
+      pharmacyId: booking.pharmacyId,
       pharmacyName,
       patientName
     });
     await notification.save();
 
-    io.to(userId.toString()).emit('pharmacyBookingAccepted', {
-      message, bookingId, pharmacyId, pharmacyName, serviceType
-    });
+    // Emit real-time notification
+    const io = getIo();
+    if (io && userId) {
+      io.to(userId.toString()).emit('pharmacyBookingAccepted', {
+        message, bookingId, pharmacyId: booking.pharmacyId, pharmacyName, serviceType: 'Vaccination'
+      });
+    }
 
     res.status(201).json({ success: true, notification });
   } catch (error) {
@@ -566,23 +593,6 @@ export const createNotificationToPharmacy = async (req, res) => {
 };
 
 // Get incoming notifications for pharmacy
-// export const getIncomingNotificationsForPharmacy = async (req, res) => {
-//   try {
-//     const conn2 = req.conn2; // PWA DB
-//     const Notification = notificationModel(conn2);
-
-//     // Find notifications intended for Pharmacy
-//     const notifications = await Notification.find({
-//       for: 'Pharmacy'
-//     }).sort({ createdAt: -1 });
-
-//     res.status(200).json({ success: true, notifications });
-//   } catch (error) {
-//     console.error('❌ Error fetching incoming notifications for pharmacy:', error);
-//     res.status(500).json({ success: false, message: error.message || 'Failed to fetch notifications' });
-//   }
-// };
-
 // export const getIncomingNotificationsForPharmacy = async (req, res) => {
 //   try {
 //     const conn2 = req.conn2; // PWA DB
